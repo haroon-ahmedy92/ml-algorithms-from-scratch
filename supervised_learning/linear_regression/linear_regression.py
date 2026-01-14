@@ -2,47 +2,30 @@
 Linear Regression from Scratch
 ==============================
 
-This module implements Linear Regression using two methods:
-1. Normal Equation (Closed-form solution)
-2. Gradient Descent (Iterative optimization)
+This module implements Linear Regression following the Coursera Machine Learning 
+Specialization (Andrew Ng) notation and structure.
 
-What is Linear Regression?
---------------------------
-Linear Regression is a supervised learning algorithm used to predict a continuous
-target variable (y) based on one or more input features (X). It assumes a linear
-relationship between the inputs and the output:
+Notation:
+---------
+    - x_train: Input features (training data)
+    - y_train: Target values (training data)
+    - m: Number of training examples
+    - w: Weight parameter (scalar for univariate, vector for multivariate)
+    - b: Bias parameter (scalar)
+    - alpha: Learning rate
+    - f_wb: Prediction f_w,b(x) = wx + b
+    - dj_dw: Gradient of cost function with respect to w
+    - dj_db: Gradient of cost function with respect to b
 
-    y = w₀ + w₁x₁ + w₂x₂ + ... + wₙxₙ
+Cost Function:
+--------------
+    J(w,b) = (1/2m) * Σ(f_w,b(x^(i)) - y^(i))²
+    
+where f_w,b(x^(i)) = w * x^(i) + b
 
-Or in matrix form:
-    y = Xw
-
-Where:
-    - X: Input features (m samples × n features)
-    - w: Weights/coefficients (n features × 1)
-    - y: Target values (m samples × 1)
-
-When to Use Linear Regression:
-------------------------------
-✓ Predicting continuous values (e.g., house prices, temperatures, sales)
-✓ When you expect a linear relationship between features and target
-✓ When interpretability is important (coefficients show feature importance)
-✓ As a baseline model before trying complex algorithms
-
-Strengths:
-----------
-+ Simple and fast to train
-+ Highly interpretable (each weight shows feature impact)
-+ Works well when the true relationship is approximately linear
-+ No hyperparameters needed for Normal Equation
-+ Low computational cost for predictions
-
-Limitations:
-------------
-- Assumes linear relationship (can't capture complex patterns)
-- Sensitive to outliers
-- Assumes features are independent (multicollinearity issues)
-- Normal Equation is slow for large datasets (matrix inversion is O(n³))
+Implementation:
+---------------
+This implementation uses vectorized NumPy operations for efficient computation.
 
 Author: ML Algorithms from Scratch Project
 License: MIT
@@ -52,267 +35,294 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def compute_cost(x, y, w, b):
+    """
+    Compute cost function for linear regression using vectorized operations.
+    
+    J(w,b) = (1/2m) * Σ(f_w,b(x^(i)) - y^(i))²
+    
+    Parameters:
+        x (ndarray): Shape (m,) - Input features
+        y (ndarray): Shape (m,) - Target values
+        w (scalar): Weight parameter
+        b (scalar): Bias parameter
+        
+    Returns:
+        total_cost (scalar): The cost J(w,b)
+    """
+    m = x.shape[0]
+    
+    # Vectorized prediction: f_wb for all examples at once
+    f_wb = w * x + b
+    
+    # Vectorized cost calculation
+    total_cost = np.sum((f_wb - y) ** 2) / (2 * m)
+    
+    return total_cost
+
+
+def compute_gradient(x, y, w, b):
+    """
+    Compute gradient for linear regression using vectorized operations.
+    
+    ∂J/∂w = (1/m) * Σ(f_w,b(x^(i)) - y^(i)) * x^(i)
+    ∂J/∂b = (1/m) * Σ(f_w,b(x^(i)) - y^(i))
+    
+    Parameters:
+        x (ndarray): Shape (m,) - Input features
+        y (ndarray): Shape (m,) - Target values
+        w (scalar): Weight parameter
+        b (scalar): Bias parameter
+        
+    Returns:
+        dj_dw (scalar): Gradient of cost with respect to w
+        dj_db (scalar): Gradient of cost with respect to b
+    """
+    m = x.shape[0]
+    
+    # Vectorized prediction for all examples
+    f_wb = w * x + b
+    
+    # Vectorized error calculation
+    error = f_wb - y
+    
+    # Vectorized gradient calculations
+    dj_dw = np.dot(error, x) / m
+    dj_db = np.sum(error) / m
+    
+    return dj_dw, dj_db
+
+
+def gradient_descent(x, y, w_in, b_in, alpha, num_iters, cost_function, gradient_function):
+    """
+    Perform gradient descent to learn w and b.
+    
+    Updates w and b by taking num_iters gradient steps with learning rate alpha.
+    
+    Parameters:
+        x (ndarray): Shape (m,) - Input features
+        y (ndarray): Shape (m,) - Target values
+        w_in (scalar): Initial weight parameter
+        b_in (scalar): Initial bias parameter
+        alpha (scalar): Learning rate
+        num_iters (int): Number of iterations to run gradient descent
+        cost_function: Function to compute cost
+        gradient_function: Function to compute gradients
+        
+    Returns:
+        w (scalar): Updated weight parameter after gradient descent
+        b (scalar): Updated bias parameter after gradient descent
+        J_history (list): History of cost values
+    """
+    J_history = []
+    w = w_in
+    b = b_in
+    
+    for i in range(num_iters):
+        # Calculate gradients
+        dj_dw, dj_db = gradient_function(x, y, w, b)
+        
+        # Update parameters simultaneously
+        w = w - alpha * dj_dw
+        b = b - alpha * dj_db
+        
+        # Save cost J at each iteration
+        if i < 100000:  # Prevent resource exhaustion
+            cost = cost_function(x, y, w, b)
+            J_history.append(cost)
+        
+        # Print cost every 10% of iterations
+        if i % (num_iters // 10) == 0 or i == num_iters - 1:
+            cost = cost_function(x, y, w, b)
+            print(f"Iteration {i:4d}: Cost {cost:8.2f}")
+    
+    return w, b, J_history
+
+
 class LinearRegression:
     """
-    Linear Regression model with two training methods.
+    Linear Regression model following Coursera ML Specialization notation.
     
     Attributes:
-        weights (np.ndarray): Model weights including bias term (w₀, w₁, ..., wₙ)
-        method (str): Training method used ('normal_equation' or 'gradient_descent')
-        learning_rate (float): Learning rate for gradient descent
-        n_iterations (int): Number of iterations for gradient descent
-        cost_history (list): History of cost values during gradient descent training
+        w (scalar): Weight parameter
+        b (scalar): Bias parameter
+        alpha (float): Learning rate
+        num_iters (int): Number of iterations for gradient descent
+        J_history (list): History of cost values during training
     """
     
-    def __init__(self, method='normal_equation', learning_rate=0.01, n_iterations=1000):
+    def __init__(self, alpha=0.01, num_iters=1000):
         """
         Initialize the Linear Regression model.
         
         Parameters:
-            method (str): Training method - 'normal_equation' or 'gradient_descent'
-            learning_rate (float): Learning rate for gradient descent (default: 0.01)
-            n_iterations (int): Number of iterations for gradient descent (default: 1000)
+            alpha (float): Learning rate (default: 0.01)
+            num_iters (int): Number of iterations for gradient descent (default: 1000)
         """
-        self.weights = None
-        self.method = method
-        self.learning_rate = learning_rate
-        self.n_iterations = n_iterations
-        self.cost_history = []
+        self.w = None
+        self.b = None
+        self.alpha = alpha
+        self.num_iters = num_iters
+        self.J_history = []
     
-    def _add_bias_term(self, X):
+    def fit(self, x_train, y_train, w_init=0.0, b_init=0.0):
         """
-        Add a column of ones to X for the bias term (intercept).
-        
-        This transforms X from [x₁, x₂, ...] to [1, x₁, x₂, ...]
-        so we can include the bias w₀ in the weight vector.
+        Train the model using gradient descent.
         
         Parameters:
-            X (np.ndarray): Feature matrix (m samples × n features)
-            
-        Returns:
-            np.ndarray: Feature matrix with bias column (m samples × (n+1) features)
-        """
-        m = X.shape[0]  # Number of samples
-        ones = np.ones((m, 1))  # Column of ones for bias
-        return np.concatenate([ones, X], axis=1)
-    
-    def fit_normal_equation(self, X, y):
-        """
-        Train using the Normal Equation (closed-form solution).
-        
-        The Normal Equation gives the optimal weights directly:
-        
-            w = (XᵀX)⁻¹ Xᵀy
-        
-        Derivation:
-        1. We want to minimize the cost function: J(w) = (1/2m) ||Xw - y||²
-        2. Take derivative with respect to w: ∂J/∂w = (1/m) Xᵀ(Xw - y)
-        3. Set derivative to zero: Xᵀ(Xw - y) = 0
-        4. Solve for w: XᵀXw = Xᵀy → w = (XᵀX)⁻¹ Xᵀy
-        
-        Time Complexity: O(n³) due to matrix inversion
-        
-        Parameters:
-            X (np.ndarray): Feature matrix (m samples × n features)
-            y (np.ndarray): Target values (m samples,)
-        """
-        # Add bias term to X
-        X_b = self._add_bias_term(X)
-        
-        # Normal Equation: w = (XᵀX)⁻¹ Xᵀy
-        # Using np.linalg.pinv for numerical stability (handles singular matrices)
-        XtX = np.dot(X_b.T, X_b)  # XᵀX
-        XtX_inv = np.linalg.pinv(XtX)  # (XᵀX)⁻¹
-        Xty = np.dot(X_b.T, y)  # Xᵀy
-        
-        self.weights = np.dot(XtX_inv, Xty)  # Final weights
-    
-    def fit_gradient_descent(self, X, y):
-        """
-        Train using Gradient Descent (iterative optimization).
-        
-        Gradient Descent iteratively updates weights to minimize the cost:
-        
-            w := w - α * ∂J/∂w
-        
-        Where:
-        - α is the learning rate
-        - ∂J/∂w = (1/m) Xᵀ(Xw - y) is the gradient
-        
-        The cost function (Mean Squared Error):
-            J(w) = (1/2m) Σ(ŷᵢ - yᵢ)²
-        
-        Parameters:
-            X (np.ndarray): Feature matrix (m samples × n features)
-            y (np.ndarray): Target values (m samples,)
-        """
-        # Add bias term to X
-        X_b = self._add_bias_term(X)
-        m, n = X_b.shape  # m = samples, n = features (including bias)
-        
-        # Initialize weights to zeros
-        self.weights = np.zeros(n)
-        self.cost_history = []
-        
-        # Gradient Descent iterations
-        for i in range(self.n_iterations):
-            # Step 1: Make predictions with current weights
-            predictions = np.dot(X_b, self.weights)  # ŷ = Xw
-            
-            # Step 2: Calculate error
-            errors = predictions - y  # (ŷ - y)
-            
-            # Step 3: Calculate gradient
-            # ∂J/∂w = (1/m) Xᵀ(ŷ - y)
-            gradient = (1/m) * np.dot(X_b.T, errors)
-            
-            # Step 4: Update weights
-            # w := w - α * gradient
-            self.weights = self.weights - self.learning_rate * gradient
-            
-            # Step 5: Calculate and store cost for monitoring
-            cost = (1/(2*m)) * np.sum(errors**2)
-            self.cost_history.append(cost)
-    
-    def fit(self, X, y):
-        """
-        Train the model using the specified method.
-        
-        Parameters:
-            X (np.ndarray): Feature matrix (m samples × n features)
-            y (np.ndarray): Target values (m samples,)
+            x_train (ndarray): Shape (m,) - Training features
+            y_train (ndarray): Shape (m,) - Training targets
+            w_init (scalar): Initial weight parameter (default: 0.0)
+            b_init (scalar): Initial bias parameter (default: 0.0)
             
         Returns:
             self: Returns the instance for method chaining
         """
-        # Ensure y is 1D array
-        y = np.array(y).flatten()
-        X = np.array(X)
+        # Ensure inputs are numpy arrays and 1D
+        x_train = np.array(x_train).flatten()
+        y_train = np.array(y_train).flatten()
         
-        # Ensure X is 2D
-        if X.ndim == 1:
-            X = X.reshape(-1, 1)
+        m = x_train.shape[0]
         
-        if self.method == 'normal_equation':
-            self.fit_normal_equation(X, y)
-        elif self.method == 'gradient_descent':
-            self.fit_gradient_descent(X, y)
-        else:
-            raise ValueError(f"Unknown method: {self.method}. "
-                           "Use 'normal_equation' or 'gradient_descent'")
+        print(f"\nTraining Linear Regression Model:")
+        print(f"  Number of training examples (m): {m}")
+        print(f"  Learning rate (alpha): {self.alpha}")
+        print(f"  Number of iterations: {self.num_iters}")
+        print(f"\nRunning gradient descent...\n")
+        
+        # Run gradient descent
+        self.w, self.b, self.J_history = gradient_descent(
+            x_train, y_train, w_init, b_init, 
+            self.alpha, self.num_iters, 
+            compute_cost, compute_gradient
+        )
+        
+        print(f"\nTraining complete!")
+        print(f"  Final parameters: w = {self.w:.4f}, b = {self.b:.4f}")
+        print(f"  Final cost: {self.J_history[-1]:.6f}")
         
         return self
     
-    def predict(self, X):
+    def predict(self, x):
         """
         Make predictions using the trained model.
         
+        f_w,b(x) = w * x + b
+        
         Parameters:
-            X (np.ndarray): Feature matrix (m samples × n features)
+            x (ndarray or scalar): Input feature(s)
             
         Returns:
-            np.ndarray: Predicted values (m samples,)
+            ndarray or scalar: Predicted value(s)
         """
-        if self.weights is None:
+        if self.w is None or self.b is None:
             raise RuntimeError("Model not trained. Call fit() first.")
         
-        X = np.array(X)
-        if X.ndim == 1:
-            X = X.reshape(-1, 1)
+        # Handle both scalar and array inputs
+        if np.isscalar(x):
+            return self.w * x + self.b
         
-        X_b = self._add_bias_term(X)
-        return np.dot(X_b, self.weights)
+        x = np.array(x).flatten()
+        return self.w * x + self.b
     
-    def score(self, X, y):
+    def compute_cost(self, x, y):
+        """
+        Compute the cost for the current parameters.
+        
+        Parameters:
+            x (ndarray): Shape (m,) - Input features
+            y (ndarray): Shape (m,) - Target values
+            
+        Returns:
+            scalar: The cost J(w,b)
+        """
+        if self.w is None or self.b is None:
+            raise RuntimeError("Model not trained. Call fit() first.")
+        
+        return compute_cost(x, y, self.w, self.b)
+    
+    def score(self, x, y):
         """
         Calculate R² score (coefficient of determination).
         
         R² = 1 - (SS_res / SS_tot)
         
-        Where:
-        - SS_res = Σ(yᵢ - ŷᵢ)² (residual sum of squares)
-        - SS_tot = Σ(yᵢ - ȳ)² (total sum of squares)
-        
-        R² ranges from -∞ to 1:
-        - R² = 1: Perfect predictions
-        - R² = 0: Model predicts the mean
-        - R² < 0: Model is worse than predicting the mean
-        
         Parameters:
-            X (np.ndarray): Feature matrix
-            y (np.ndarray): True target values
+            x (ndarray): Feature values
+            y (ndarray): True target values
             
         Returns:
             float: R² score
         """
         y = np.array(y).flatten()
-        y_pred = self.predict(X)
+        y_pred = self.predict(x)
         
-        ss_res = np.sum((y - y_pred) ** 2)  # Residual sum of squares
-        ss_tot = np.sum((y - np.mean(y)) ** 2)  # Total sum of squares
+        ss_res = np.sum((y - y_pred) ** 2)
+        ss_tot = np.sum((y - np.mean(y)) ** 2)
         
         return 1 - (ss_res / ss_tot)
     
-    def get_coefficients(self):
+    def get_parameters(self):
         """
-        Get the model coefficients (weights).
+        Get the model parameters.
         
         Returns:
-            dict: Dictionary with 'bias' and 'weights' keys
+            dict: Dictionary with 'w' and 'b' keys
         """
-        if self.weights is None:
+        if self.w is None or self.b is None:
             raise RuntimeError("Model not trained. Call fit() first.")
         
         return {
-            'bias': self.weights[0],
-            'weights': self.weights[1:]
+            'w': self.w,
+            'b': self.b
         }
     
     def plot_cost_history(self):
         """
-        Plot the cost function over iterations (only for gradient descent).
+        Plot the cost function J(w,b) over iterations.
         
-        This visualization helps diagnose training:
+        Helps diagnose training:
         - Decreasing curve: Learning is working
-        - Flat curve: May have converged or learning rate too small
-        - Increasing/oscillating: Learning rate too high
+        - Flat curve: May have converged or alpha too small
+        - Increasing/oscillating: alpha too high
         """
-        if not self.cost_history:
-            print("No cost history available. Train with gradient descent first.")
+        if not self.J_history:
+            print("No cost history available. Train the model first.")
             return
         
         plt.figure(figsize=(10, 6))
-        plt.plot(self.cost_history, 'b-', linewidth=2)
+        plt.plot(self.J_history, 'b-', linewidth=2)
         plt.xlabel('Iteration', fontsize=12)
-        plt.ylabel('Cost (MSE)', fontsize=12)
-        plt.title('Gradient Descent: Cost vs Iterations', fontsize=14)
+        plt.ylabel('Cost J(w,b)', fontsize=12)
+        plt.title(f'Gradient Descent: Cost vs Iterations (alpha={self.alpha})', fontsize=14)
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.show()
 
 
-def plot_regression_line(X, y, model, title="Linear Regression"):
+def plot_regression_line(x, y, model, title="Linear Regression"):
     """
-    Visualize the regression line with data points (for 1D features).
+    Visualize the regression line with data points.
     
     Parameters:
-        X (np.ndarray): Feature values
-        y (np.ndarray): Target values
+        x (ndarray): Feature values
+        y (ndarray): Target values
         model (LinearRegression): Trained model
         title (str): Plot title
     """
     plt.figure(figsize=(10, 6))
     
-    # Plot data points
-    plt.scatter(X, y, color='blue', alpha=0.6, label='Data points', s=50)
+    # Plot training data
+    plt.scatter(x, y, color='blue', alpha=0.6, marker='x', s=100, label='Training data')
     
     # Plot regression line
-    X_line = np.linspace(X.min(), X.max(), 100).reshape(-1, 1)
-    y_line = model.predict(X_line)
-    plt.plot(X_line, y_line, color='red', linewidth=2, label='Regression line')
+    x_line = np.linspace(x.min(), x.max(), 100)
+    y_line = model.predict(x_line)
+    plt.plot(x_line, y_line, color='red', linewidth=2, 
+             label=f'f_w,b(x) = {model.w:.2f}x + {model.b:.2f}')
     
     # Formatting
-    plt.xlabel('X (Feature)', fontsize=12)
+    plt.xlabel('x (Feature)', fontsize=12)
     plt.ylabel('y (Target)', fontsize=12)
     plt.title(title, fontsize=14)
     plt.legend(fontsize=10)
@@ -326,121 +336,98 @@ def plot_regression_line(X, y, model, title="Linear Regression"):
 # =============================================================================
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("LINEAR REGRESSION FROM SCRATCH - DEMONSTRATION")
-    print("=" * 60)
+    print("=" * 70)
+    print("LINEAR REGRESSION - COURSERA ML SPECIALIZATION IMPLEMENTATION")
+    print("=" * 70)
     
     # -------------------------------------------------------------------------
-    # Create a sample dataset
+    # Create training dataset
     # -------------------------------------------------------------------------
-    # We'll create synthetic data following: y = 4 + 3x + noise
-    # True parameters: bias = 4, weight = 3
+    # Synthetic data: y = 4 + 3x + noise
     
-    np.random.seed(42)  # For reproducibility
+    np.random.seed(42)
     
-    # Generate 100 random samples
-    X = 2 * np.random.rand(100, 1)  # Features between 0 and 2
-    y = 4 + 3 * X.flatten() + np.random.randn(100) * 0.5  # y = 4 + 3x + noise
+    # Generate m training examples
+    m = 100
+    x_train = 2 * np.random.rand(m)
+    y_train = 4 + 3 * x_train + np.random.randn(m) * 0.5
     
-    print("\n📊 Dataset Information:")
-    print(f"   - Number of samples: {len(X)}")
-    print(f"   - True relationship: y = 4 + 3x + noise")
-    print(f"   - Feature range: [{X.min():.2f}, {X.max():.2f}]")
-    print(f"   - Target range: [{y.min():.2f}, {y.max():.2f}]")
-    
-    # -------------------------------------------------------------------------
-    # Method 1: Normal Equation
-    # -------------------------------------------------------------------------
-    print("\n" + "-" * 60)
-    print("📐 METHOD 1: NORMAL EQUATION")
-    print("-" * 60)
-    
-    model_ne = LinearRegression(method='normal_equation')
-    model_ne.fit(X, y)
-    
-    coeffs_ne = model_ne.get_coefficients()
-    r2_ne = model_ne.score(X, y)
-    
-    print(f"\n   Learned Parameters:")
-    print(f"   - Bias (intercept): {coeffs_ne['bias']:.4f} (true: 4.0)")
-    print(f"   - Weight (slope):   {coeffs_ne['weights'][0]:.4f} (true: 3.0)")
-    print(f"\n   Model Performance:")
-    print(f"   - R² Score: {r2_ne:.4f}")
+    print(f"\n📊 Dataset Information:")
+    print(f"   Number of training examples (m): {m}")
+    print(f"   True relationship: y = 4 + 3x + noise")
+    print(f"   Feature range: [{x_train.min():.2f}, {x_train.max():.2f}]")
+    print(f"   Target range: [{y_train.min():.2f}, {y_train.max():.2f}]")
     
     # -------------------------------------------------------------------------
-    # Method 2: Gradient Descent
+    # Test the standalone functions
     # -------------------------------------------------------------------------
-    print("\n" + "-" * 60)
-    print("📉 METHOD 2: GRADIENT DESCENT")
-    print("-" * 60)
+    print("\n" + "-" * 70)
+    print("🔬 TESTING STANDALONE FUNCTIONS")
+    print("-" * 70)
     
-    model_gd = LinearRegression(
-        method='gradient_descent',
-        learning_rate=0.1,
-        n_iterations=1000
-    )
-    model_gd.fit(X, y)
+    # Initialize parameters
+    w_test = 0.0
+    b_test = 0.0
     
-    coeffs_gd = model_gd.get_coefficients()
-    r2_gd = model_gd.score(X, y)
+    # Test compute_cost
+    initial_cost = compute_cost(x_train, y_train, w_test, b_test)
+    print(f"\nInitial cost with w={w_test}, b={b_test}: {initial_cost:.4f}")
     
-    print(f"\n   Hyperparameters:")
-    print(f"   - Learning rate: {model_gd.learning_rate}")
-    print(f"   - Iterations: {model_gd.n_iterations}")
-    print(f"\n   Learned Parameters:")
-    print(f"   - Bias (intercept): {coeffs_gd['bias']:.4f} (true: 4.0)")
-    print(f"   - Weight (slope):   {coeffs_gd['weights'][0]:.4f} (true: 3.0)")
-    print(f"\n   Model Performance:")
-    print(f"   - R² Score: {r2_gd:.4f}")
-    print(f"   - Final Cost: {model_gd.cost_history[-1]:.6f}")
+    # Test compute_gradient
+    dj_dw, dj_db = compute_gradient(x_train, y_train, w_test, b_test)
+    print(f"Initial gradients:")
+    print(f"  dj_dw = {dj_dw:.4f}")
+    print(f"  dj_db = {dj_db:.4f}")
     
     # -------------------------------------------------------------------------
-    # Compare Results
+    # Train model using gradient descent
     # -------------------------------------------------------------------------
-    print("\n" + "-" * 60)
-    print("🔍 COMPARISON OF METHODS")
-    print("-" * 60)
-    print(f"\n   {'Metric':<20} {'Normal Equation':<18} {'Gradient Descent':<18}")
-    print(f"   {'-'*20} {'-'*18} {'-'*18}")
-    print(f"   {'Bias':<20} {coeffs_ne['bias']:<18.4f} {coeffs_gd['bias']:<18.4f}")
-    print(f"   {'Weight':<20} {coeffs_ne['weights'][0]:<18.4f} {coeffs_gd['weights'][0]:<18.4f}")
-    print(f"   {'R² Score':<20} {r2_ne:<18.4f} {r2_gd:<18.4f}")
+    print("\n" + "-" * 70)
+    print("🎓 TRAINING MODEL WITH GRADIENT DESCENT")
+    print("-" * 70)
+    
+    model = LinearRegression(alpha=0.01, num_iters=1000)
+    model.fit(x_train, y_train, w_init=0.0, b_init=0.0)
+    
+    # Get learned parameters
+    params = model.get_parameters()
+    r2_score = model.score(x_train, y_train)
+    
+    print(f"\n📈 Model Performance:")
+    print(f"   R² Score: {r2_score:.4f}")
     
     # -------------------------------------------------------------------------
-    # Make Predictions
+    # Make predictions
     # -------------------------------------------------------------------------
-    print("\n" + "-" * 60)
+    print("\n" + "-" * 70)
     print("🎯 SAMPLE PREDICTIONS")
-    print("-" * 60)
+    print("-" * 70)
     
-    test_values = np.array([[0.5], [1.0], [1.5]])
-    predictions = model_ne.predict(test_values)
-    true_values = 4 + 3 * test_values.flatten()  # Without noise
+    x_test = np.array([0.5, 1.0, 1.5])
+    y_pred = model.predict(x_test)
+    y_true = 4 + 3 * x_test  # True values without noise
     
-    print(f"\n   {'X Value':<12} {'Predicted':<12} {'True (no noise)':<15}")
-    print(f"   {'-'*12} {'-'*12} {'-'*15}")
-    for x, pred, true in zip(test_values.flatten(), predictions, true_values):
-        print(f"   {x:<12.2f} {pred:<12.4f} {true:<15.4f}")
+    print(f"\n   {'x':<10} {'Predicted':<15} {'True (no noise)':<15}")
+    print(f"   {'-'*10} {'-'*15} {'-'*15}")
+    for x_val, pred, true in zip(x_test, y_pred, y_true):
+        print(f"   {x_val:<10.2f} {pred:<15.4f} {true:<15.4f}")
     
     # -------------------------------------------------------------------------
     # Visualizations
     # -------------------------------------------------------------------------
-    print("\n" + "-" * 60)
-    print("📈 VISUALIZATIONS")
-    print("-" * 60)
-    print("\n   Generating plots...")
+    print("\n" + "-" * 70)
+    print("📊 GENERATING VISUALIZATIONS")
+    print("-" * 70)
+    print("\nPlotting regression line and cost history...")
     
-    # Plot 1: Regression line with Normal Equation
-    plot_regression_line(X, y, model_ne, 
-                        title="Linear Regression - Normal Equation")
+    # Plot 1: Regression line
+    plot_regression_line(x_train, y_train, model, 
+                        title="Linear Regression - Coursera ML Specialization")
     
-    # Plot 2: Regression line with Gradient Descent
-    plot_regression_line(X, y, model_gd, 
-                        title="Linear Regression - Gradient Descent")
+    # Plot 2: Cost history
+    model.plot_cost_history()
     
-    # Plot 3: Cost history for Gradient Descent
-    model_gd.plot_cost_history()
-    
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 70)
     print("✅ DEMONSTRATION COMPLETE!")
-    print("=" * 60)
+    print("=" * 70)
+

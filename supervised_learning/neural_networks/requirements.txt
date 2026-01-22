@@ -1,0 +1,6 @@
+# Requirements for Neurons and Layers Demonstration
+# Install with: pip install -r requirements.txt
+
+numpy>=1.19.0
+matplotlib>=3.3.0
+tensorflow>=2.0.0

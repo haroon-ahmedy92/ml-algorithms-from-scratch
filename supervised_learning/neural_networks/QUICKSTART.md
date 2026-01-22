@@ -2,18 +2,57 @@
 
 ## Installation (One-Time Setup)
 
+### Option 1: Using Virtual Environment (Recommended)
+
 ```bash
 # Navigate to the neural_networks directory
 cd supervised_learning/neural_networks
 
+# Create a virtual environment
+python3 -m venv venv
+
+# Activate the virtual environment
+source venv/bin/activate
+
 # Install dependencies
-pip3 install -r requirements.txt
+pip install -r requirements.txt
+```
+
+### Option 2: Using System Packages (Debian/Ubuntu)
+
+```bash
+# Install TensorFlow and dependencies via apt
+sudo apt install python3-numpy python3-matplotlib python3-tensorflow
+```
+
+### Option 3: Using pipx (For standalone applications)
+
+```bash
+# Install pipx if not already installed
+sudo apt install pipx
+
+# Note: This is better for command-line tools, not recommended for this script
 ```
 
 ## Running the Script
 
+### If using Virtual Environment
+
 ```bash
+# Make sure virtual environment is activated
+source venv/bin/activate
+
 # Run the complete demonstration
+python neurons_and_layers_demo.py
+
+# When done, deactivate the virtual environment
+deactivate
+```
+
+### If using System Packages
+
+```bash
+# Run directly with python3
 python3 neurons_and_layers_demo.py
 ```
 
@@ -67,15 +106,43 @@ SECTION 2: LOGISTIC REGRESSION - NEURON WITH SIGMOID ACTIVATION
 
 ## Troubleshooting
 
-**TensorFlow not found?**
+**Externally-managed-environment error?**
 ```bash
-pip3 install tensorflow
+# Use a virtual environment instead (see Installation above)
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+**TensorFlow not found (in virtual environment)?**
+```bash
+# Activate virtual environment first
+source venv/bin/activate
+pip install tensorflow
+```
+
+**TensorFlow not found (system-wide)?**
+```bash
+# Install via apt on Debian/Ubuntu
+sudo apt install python3-tensorflow
 ```
 
 **Display issues?**
 ```bash
 # Install display backend
-sudo apt-get install python3-tk
+sudo apt-get install python3-tk python3-matplotlib
+```
+
+**Virtual environment activation issues?**
+```bash
+# Make sure you're in the right directory
+cd supervised_learning/neural_networks
+
+# Check if venv exists
+ls -la venv/
+
+# If not, create it
+python3 -m venv venv
 ```
 
 ## Next Steps

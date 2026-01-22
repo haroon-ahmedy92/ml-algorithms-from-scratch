@@ -12,27 +12,72 @@ Each section includes detailed mathematical explanations and compares Keras pred
 
 ## Installation
 
-### Prerequisites
+### Method 1: Virtual Environment (Recommended)
+
+This is the recommended approach for modern Python development and avoids system package conflicts.
 
 ```bash
+# Navigate to the neural_networks directory
+cd supervised_learning/neural_networks
+
+# Create a virtual environment
+python3 -m venv venv
+
+# Activate the virtual environment
+source venv/bin/activate
+
 # Install required packages
-pip install numpy matplotlib tensorflow
+pip install -r requirements.txt
 
-# Or using pip3
-pip3 install numpy matplotlib tensorflow
+# Verify installation
+python -c "import tensorflow as tf; print(f'TensorFlow version: {tf.__version__}')"
 ```
 
-### Verify Installation
+**Note:** Remember to activate the virtual environment each time you want to run the script:
+```bash
+source venv/bin/activate
+```
+
+### Method 2: System Packages (Debian/Ubuntu/Parrot OS)
+
+For Debian-based systems with externally-managed Python environments:
 
 ```bash
-python3 -c "import tensorflow as tf; print(f'TensorFlow version: {tf.__version__}')"
+# Install system packages via apt
+sudo apt install python3-numpy python3-matplotlib python3-tensorflow python3-full
+
+# No activation needed, run scripts directly with python3
 ```
+
+### Method 3: Using --break-system-packages (Not Recommended)
+
+Only use this if you understand the risks:
+
+```bash
+pip3 install --break-system-packages -r requirements.txt
+```
+
+⚠️ **Warning:** This may cause conflicts with system packages.
 
 ## Running the Script
 
-### Basic Execution
+### With Virtual Environment
 
 ```bash
+# Activate virtual environment (if not already active)
+source venv/bin/activate
+
+# Run the demonstration
+python neurons_and_layers_demo.py
+
+# When finished, deactivate
+deactivate
+```
+
+### With System Packages
+
+```bash
+# Run directly with python3
 python3 neurons_and_layers_demo.py
 ```
 

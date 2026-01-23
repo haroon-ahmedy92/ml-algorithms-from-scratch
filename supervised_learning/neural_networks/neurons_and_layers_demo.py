@@ -79,17 +79,23 @@ def section1_linear_regression():
     """
     
     # Create a Sequential model with one Dense layer
-    linear_layer = Dense(units=1, activation='linear', input_dim=1)
+    model = Sequential([
+        Dense(units=1, activation='linear', input_shape=(1,))
+    ])
     
     # Alternative way using Sequential:
-    # model = Sequential([
-    #     Dense(units=1, activation='linear', input_shape=(1,))
-    # ])
+    # model = Sequential()
+    # model.add(Input(shape=(1,)))
+    # model.add(Dense(1, activation='linear'))
     
-    print("✓ Created Dense layer:")
-    print(f"  - Units: 1 (single neuron)")
-    print(f"  - Activation: linear (f(x) = x)")
-    print(f"  - Input dimension: 1")
+    print("✓ Created Sequential model:")
+    print(f"  - Architecture: Dense(1, linear)")
+    print(f"  - Input shape: (1,)")
+    print(f"  - Output: Single continuous value")
+    
+    # Display model architecture
+    print("\nModel Summary:")
+    model.summary()
     
     # -------------------------------------------------------------------------
     # Step 3: Set Weights and Bias Manually
@@ -114,18 +120,18 @@ def section1_linear_regression():
     w = 200.0
     b = 100.0
     
-    # Set weights: [weight, bias]
-    # Note: Keras expects weights as [input_weights, bias]
-    # Shape: weights = (1, 1), bias = (1,)
-    linear_layer.set_weights([np.array([[w]]), np.array([b])])
+    # Set weights for the Dense layer
+    # Weights: (input_dim, units) = (1, 1)
+    # Bias: (units,) = (1,)
+    model.set_weights([np.array([[w]]), np.array([b])])
     
     print(f"Set weights manually:")
     print(f"  w = {w} (weight)")
     print(f"  b = {b} (bias)")
     print(f"\nMathematical formula: f(x) = {w}x + {b}")
     
-    # Verify weights were set correctly
-    weights, bias = linear_layer.get_weights()
+    # Verify weights
+    weights, bias = model.get_weights()
     print(f"\nVerification - Retrieved weights:")
     print(f"  Weight matrix: {weights.flatten()}")
     print(f"  Bias vector: {bias}")
@@ -136,12 +142,12 @@ def section1_linear_regression():
     print("\n🎯 Step 4: Make Predictions using Keras")
     print("-" * 80)
     
-    # Make predictions using the Keras layer
-    Y_pred_keras = linear_layer(X_train)
+    # Make predictions using the Keras model
+    Y_pred_keras = model.predict(X_train, verbose=0)
     
     print("Keras predictions:")
     for i, (x, y_pred) in enumerate(zip(X_train, Y_pred_keras)):
-        print(f"  x = {x[0]:.1f}: f(x) = {y_pred.numpy()[0]:.1f}")
+        print(f"  x = {x[0]:.1f}: f(x) = {y_pred[0]:.1f}")
     
     # -------------------------------------------------------------------------
     # Step 5: Manual Calculation using NumPy
@@ -186,13 +192,13 @@ def section1_linear_regression():
     print("-" * 50)
     
     for i in range(len(X_train)):
-        keras_val = Y_pred_keras[i].numpy()[0]
+        keras_val = Y_pred_keras[i][0]
         manual_val = Y_pred_manual[i][0]
         match = "✓ Yes" if np.allclose(keras_val, manual_val) else "✗ No"
         print(f"{X_train[i][0]:<10.1f} {keras_val:<15.1f} {manual_val:<15.1f} {match:<10}")
     
     # Verify all predictions match
-    all_match = np.allclose(Y_pred_keras.numpy(), Y_pred_manual)
+    all_match = np.allclose(Y_pred_keras, Y_pred_manual)
     print(f"\n{'='*50}")
     print(f"✅ All predictions match: {all_match}")
     print(f"{'='*50}")
@@ -210,12 +216,12 @@ def section1_linear_regression():
                 linewidth=2, label='Training Data', zorder=3)
     
     # Plot predictions
-    plt.scatter(X_train, Y_pred_keras.numpy(), color='blue', s=100, 
+    plt.scatter(X_train, Y_pred_keras, color='blue', s=100, 
                 marker='o', alpha=0.6, label='Keras Predictions', zorder=2)
     
     # Plot regression line
     x_line = np.linspace(0, 3, 100).reshape(-1, 1)
-    y_line = linear_layer(x_line)
+    y_line = model.predict(x_line, verbose=0)
     plt.plot(x_line, y_line, 'g-', linewidth=2, 
              label=f'f(x) = {w}x + {b}', zorder=1)
     
@@ -227,7 +233,7 @@ def section1_linear_regression():
     plt.tight_layout()
     plt.show()
     
-    return linear_layer, Y_pred_keras, Y_pred_manual
+    return model, Y_pred_keras, Y_pred_manual
 
 
 # =============================================================================
